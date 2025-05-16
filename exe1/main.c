@@ -2,13 +2,19 @@
 #include "pico/stdlib.h"
 #include <stdio.h>
 
-const int BTN_PIN_R = 28;
+#define BTN_PIN_R 28
+#define EVENT_FALL GPIO_IRQ_EDGE_FALL
+#define EVENT_RISE GPIO_IRQ_EDGE_RISE
+
+volatile bool flag_fall = false;
+volatile bool flag_rise = false;
 
 void btn_callback(uint gpio, uint32_t events) {
-  if (events == 0x4) { // fall edge
-    printf("fall \n");
-  } else if (events == 0x8) { // rise edge
-    printf("rise \n");
+  if (events & EVENT_FALL) {
+    flag_fall = true;
+  }
+  if (events & EVENT_RISE) {
+    flag_rise = true;
   }
 }
 
@@ -19,9 +25,19 @@ int main() {
   gpio_set_dir(BTN_PIN_R, GPIO_IN);
   gpio_pull_up(BTN_PIN_R);
 
+  // Enable interrupts for both rising and falling edges
   gpio_set_irq_enabled_with_callback(
-      BTN_PIN_R, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &btn_callback);
+      BTN_PIN_R, EVENT_RISE | EVENT_FALL, true, &btn_callback);
 
   while (true) {
+    if (flag_fall) {
+      printf("fall\n");
+      flag_fall = false;
+    }
+
+    if (flag_rise) {
+      printf("rise\n");
+      flag_rise = false;
+    }
   }
 }
